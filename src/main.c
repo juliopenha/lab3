@@ -1,12 +1,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
+#include "system_tm4c1294.h" // CMSIS-Core
+#include "driverleds.h" // device drivers
+#include "cmsis_os2.h" // CMSIS-RTOS
 
 // includes da biblioteca driverlib
 #include "inc/hw_memmap.h"
 #include "inc/hw_ints.h"
-#include "inc/tm4c1294ncpdt.h"
+#include "inc/tm4c1294ncpdt.h" // dá um monte de warning
 #include "system_TM4C1294.h" 
 #include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
@@ -15,23 +19,71 @@
 #include "driverlib/adc.h"
 #include "driverlib/fpu.h"
 #include "driverlib/interrupt.h"
+#include "driverlib/uart.h"
+#include "utils/uartstdio.h"
+#include "driverlib/qei.h"
 
 #define MAX (10)
-#define PRECISAO (4095)
+#define MAX_POT (4095)
+#define MAX_RPM (8900)
 #define TICKS_IN_PERIOD (20000)
 #define SW1       (GPIO_PIN_0)    //PJ0
 #define SW2       (GPIO_PIN_1)    //PJ1
+#define Kp (2)
+#define Ki (2)
+#define Kd (2)
+#define LOAD (120000)
+#define PPR (18)
+#define EDGES (4)
 
-
+extern void UARTStdioIntHandler(void);
 
 uint32_t PotValue;
 uint32_t dc;
-uint8_t horario = 0;
+uint8_t direction = 0;
+uint8_t velocity = 0;
+uint16_t setpoint = 0;
 
+uint32_t qei_vel; 
+uint32_t qei_dir; 
+uint32_t error = 0;
+uint32_t prev_error = 0;
+uint32_t P = 0;
+uint32_t I = 0;
+uint32_t D = 0;
+uint32_t PIDValue;
+
+osThreadId_t PIDControl_t, PulseCount_t, Communication_t, ControlInit_t;
+uint32_t i = 0;
+
+void UARTInit(void){
+  // Enable the GPIO Peripheral used by the UART.
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+  while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOA));
+
+  // Enable UART0
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+  while(!SysCtlPeripheralReady(SYSCTL_PERIPH_UART0));
+
+  // Configure GPIO Pins for UART mode.
+  GPIOPinConfigure(GPIO_PA0_U0RX);
+  GPIOPinConfigure(GPIO_PA1_U0TX);
+  GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+
+  // Initialize the UART for console I/O.
+  UARTStdioConfig(0, 9600, SystemCoreClock);
+  
+  UARTprintf("----------------------------------\n");
+  
+} // UARTInit
+
+void UART0_Handler(void){
+  UARTStdioIntHandler();
+} // UART0_Handler
 
 void GPIOInit(){
     
-  ///Buttons GPIO
+///Buttons GPIO
 
   SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ); // Habilita GPIO J (push-button SW1 = PJ0, push-button SW2 = PJ1)
   while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOJ)); // Aguarda final da habilitação
@@ -64,6 +116,18 @@ void GPIOInit(){
   
   GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_4);
   
+  ///QEI GPIO
+
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);
+  while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOL)){};
+  
+  
+  GPIOPinTypeQEI(GPIO_PORTL_BASE, (GPIO_PIN_2 | GPIO_PIN_1));
+    
+  GPIOPinConfigure(0x000A0406); // GPIO_PL1_PHA0: x000A0406   
+  GPIOPinConfigure(0x000A0806);  // GPIO_PL2_PHB0: 0x000A0806
+    
+    
   ///PWM GPIO (PF2)
   // Enable and wait for the GPIOF peripheral
   SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF); 
@@ -73,13 +137,12 @@ void GPIOInit(){
   GPIOPinTypePWM(GPIO_PORTF_BASE, GPIO_PIN_2);
   
   // Enable PWM2 functionality on GPIO Port F pin 2.
-  GPIOPinConfigure(0x00050806);   //GPIO_PF2_M0PWM2: 0x00050806
- 
+  GPIOPinConfigure(GPIO_PF2_M0PWM2);//(0x00050806);   //GPIO_PF2_M0PWM2: 0x00050806
 }
 
 //initialize  the  PWM2  with  a  1Khz  KHzfrequency, and with a 0% duty cycle
 void PWMInit (void){
-
+  
   // The TM4C1294NCPDT microcontroller contains *one* PWM module, 
   // with four PWM generator blocks and a control block, for a total of 8 PWM outputs.
   // Each PWM generator block produces two PWM signals that share the same timer and frequency
@@ -101,7 +164,7 @@ void PWMInit (void){
   // 1Khz => x microseconds
   // How many clock ticks in 20 mcsec? = 20e-6 / 50e-9 = 400
   // Or: 20Mhz / 1Khz = 20000 ticks = TICKS_IN_PERIOD
-  PWMGenPeriodSet(PWM0_BASE, PWM_GEN_1, TICKS_IN_PERIOD);
+  PWMGenPeriodSet(PWM0_BASE, PWM_GEN_1, TICKS_IN_PERIOD); 
   
   // Set the pulse width of PWM2 for a 0% duty cycle.
   PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, 0);
@@ -131,9 +194,38 @@ void ADCInit(){
   
 }
 
-//Grava valor discreto do Pot em PotValue;
-//12 bits de precisao => (0 a 4095)
-void PotRead (void){  
+void QEIInit(){
+  
+  //// Enable the QEI0 peripheral
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_QEI0);
+  
+  //// Wait for the QEI0 module to be ready.//
+  while(!SysCtlPeripheralReady(SYSCTL_PERIPH_QEI0)){}
+  
+  
+  //// Configure the quadrature encoder to capture edges on both signals .
+  //Using a 1000 line encoder at four edges per line, there are 4000 pulses per
+  // revolution; therefore set the maximum position to 3999 as the count
+  // is zero based.
+  
+  QEIConfigure(QEI0_BASE, (QEI_CONFIG_CAPTURE_A_B | QEI_CONFIG_NO_RESET |QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), EDGES * PPR - 1);  
+  QEIPositionSet(QEI0_BASE, 0);
+  
+  QEIVelocityConfigure(QEI0_BASE, QEI_VELDIV_1, LOAD);
+  
+                       
+                       
+  // Enable the quadrature encoder.//
+  QEIEnable(QEI0_BASE);
+  
+  QEIVelocityEnable(QEI0_BASE);
+
+}
+
+void PotRead (void){
+  //Grava valor discreto do Pot em PotValue;
+  //12 bits de precisao => (0 a 4095)
+  
   //// Trigger the sample sequence.//
   ADCProcessorTrigger(ADC0_BASE, 0);
   
@@ -157,13 +249,11 @@ void GPIOJ_Handler(void){
     if ((GPIO_PORTJ_AHB_RIS_R & 0x01) == 0x00) {
         // The code for IRQ
 								
-        horario = 1;  
-  
-			
-			
+        direction = 1;  
+
     }else {
       
-      horario = 0;
+      direction = 0;
     
     }
   
@@ -173,9 +263,7 @@ void GPIOJ_Handler(void){
 }
 
 void RunMotor(){
-  
-  
-  if(horario){
+  if(direction){
     // Girar motor no Sentido Horario
   GPIOPinWrite(GPIO_PORTE_BASE,(GPIO_PIN_1 | GPIO_PIN_0),(GPIO_PIN_0));
   } else {
@@ -188,29 +276,111 @@ void RunMotor(){
   
   //IMPLEMENTAR DIRECAO DO MOTOR
   
-  dc = ((float) PotValue / (float) PRECISAO) * (float) TICKS_IN_PERIOD;
+  dc = ((float) PotValue / (float) MAX_POT) * (float) TICKS_IN_PERIOD;
   
   // Set the pulse width of PWM2 with dc
   PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, dc);
   
 }
 
+void PIDControl(void *arg){
+  uint8_t led = (uint32_t)arg;
+  uint8_t state = 0;
+  while(1){
+    osThreadFlagsWait(0x001, osFlagsWaitAny, osWaitForever);
+    state ^= led;
+    LEDWrite(led, state);
+    
+    if(direction){
+    // Girar motor no Sentido Horario
+    GPIOPinWrite(GPIO_PORTE_BASE,(GPIO_PIN_1 | GPIO_PIN_0),(GPIO_PIN_0));
+    } else {
+      // Girar motor no Sentido Anti-Horario
+      GPIOPinWrite(GPIO_PORTE_BASE,(GPIO_PIN_1 | GPIO_PIN_0),(GPIO_PIN_1));    
+    }
+    error = velocity - setpoint;
+    P = error;
+    I = I + error;
+    D = error - prev_error;
+    PIDValue = (Kp * P) + (Ki * I) + (Kd * D);
+    
+    prev_error = error;
+    
+    if(PIDValue > TICKS_IN_PERIOD) {
+      PIDValue = TICKS_IN_PERIOD;
+    }
+    if(PIDValue < 0) {
+      PIDValue = 0;
+    }
+    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, 20000);
+    osThreadFlagsSet(PulseCount_t, 0x010);
+  } // while
+} // PIDControl
 
+void PulseCount(void *arg){
+  uint32_t delay = (uint32_t)arg;
+  uint32_t tick;
+  
+  while(1){
+    osThreadFlagsWait(0x0010, osFlagsWaitAny, osWaitForever);
+    tick = osKernelGetTickCount();
+    osDelay(500);
+    QEIPositionGet(QEI0_BASE);
+    qei_vel = QEIVelocityGet(QEI0_BASE);
+    qei_dir = QEIDirectionGet(QEI0_BASE);
+    
+    velocity = (SystemCoreClock * qei_vel * 60) / (LOAD * PPR * EDGES);
+    
+    osThreadFlagsSet(Communication_t, 0x100);
+    UARTprintf("<Temporiza> enviado\n");
+    osDelayUntil(tick + delay);
+  } // while
+} // PulseCount
+
+void Communication(void *arg){
+  UARTprintf("Use o Potenciometro para ajustar o setpoint\n");
+//  UARTprintf(" e os botões para a direção");
+//  UARTprintf(" - SW1 -> ANTI-HORÁRIO / SW2 -> HORÁRIO\n");
+  
+  while(1){
+    osThreadFlagsWait(0x100, osFlagsWaitAny, osWaitForever);
+    PotRead();
+    setpoint = PotValue*MAX_RPM/MAX_POT;
+    UARTprintf("Setpoint: %i Velocity: %i Direction: %i\n", setpoint, velocity, direction);
+    
+    osThreadFlagsSet(PIDControl_t, 0x001);
+  } // while
+} // Communication
+
+void ControlInit(void *arg){
+//    UARTprintf("INICIALIZANDO SISTEMA DE CONTROLE...\n");
+    osThreadFlagsSet(Communication_t, 0x100);
+//    UARTprintf("SISTEMA DE CONTROLE INICIADO\n");
+} // ControlInit
 
 void main(void){
-    
+  SystemInit();
+  LEDInit(LED1);
+  UARTInit();
   FPUEnable();
   FPULazyStackingEnable();
   
   GPIOInit();
   PWMInit();
   ADCInit();
+  QEIInit();
   IntMasterEnable();
   
-  while(1){      
-      
-    RunMotor();
-    
+  osKernelInitialize();
+ 
+  PIDControl_t = osThreadNew(PIDControl, (void *)LED1, NULL);
+  PulseCount_t = osThreadNew(PulseCount, (void *)1000, NULL);
+  Communication_t = osThreadNew(Communication, NULL, NULL);
+  ControlInit_t = osThreadNew(ControlInit, NULL, NULL);
+  
+  if(osKernelGetState() == osKernelReady) {
+    osKernelStart();
   }
+  while(1);
   
 }
