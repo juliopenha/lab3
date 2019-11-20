@@ -2,5 +2,5 @@
 *.ewd
 *.ewp
 *.ewt
-./Debug
-,/settings
+Debug/
+settings/
