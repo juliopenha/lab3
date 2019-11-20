@@ -57,7 +57,9 @@ long double div;
 long double quo;
 double ratio;
 
-osThreadId_t PIDControl_t, PulseCount_t, Communication_t, ControlInit_t;
+osThreadId_t PIDControl_id, PulseCount_id, Communication_id, ControlInit_id;
+osMutexId_t MutexVel_id;
+
 uint32_t i = 0;
 
 void UARTInit(void){
@@ -317,7 +319,7 @@ void PIDControl(void *arg){
       PIDValue = 0;
     }
     PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, 10000);
-    osThreadFlagsSet(PulseCount_t, 0x010);
+    osThreadFlagsSet(PulseCount_id, 0x010);
   } // while
 } // PIDControl
 
@@ -332,11 +334,12 @@ void PulseCount(void *arg){
     qei_vel = QEIVelocityGet(QEI0_BASE);
     qei_dir = QEIDirectionGet(QEI0_BASE);
     
+    osMutexAcquire(MutexVel_id, osWaitForever);
     velocity = qei_vel * ratio;
+    osMutexRelease(MutexVel_id);
     
-    osThreadFlagsSet(Communication_t, 0x100);
-    UARTprintf("<Temporiza> enviado\n");
     osDelayUntil(tick + delay);
+    osThreadFlagsSet(Communication_id, 0x100);
   } // while
 } // PulseCount
 
@@ -350,15 +353,16 @@ void Communication(void *arg){
     PotRead();
     setpoint = PotValue*MAX_RPM/MAX_POT;
     for(i = 0; i< 100000; i++);
+    
     UARTprintf("Setpoint: %i Velocity: %i Direction: %i\n", setpoint, velocity, direction);
     
-    osThreadFlagsSet(PIDControl_t, 0x001);
+    osThreadFlagsSet(PIDControl_id, 0x001);
   } // while
 } // Communication
 
 void ControlInit(void *arg){
 //    UARTprintf("INICIALIZANDO SISTEMA DE CONTROLE...\n");
-    osThreadFlagsSet(Communication_t, 0x100);
+    osThreadFlagsSet(Communication_id, 0x100);
 //    UARTprintf("SISTEMA DE CONTROLE INICIADO\n");
 } // ControlInit
 
@@ -377,10 +381,11 @@ void main(void){
   
   osKernelInitialize();
  
-  PIDControl_t = osThreadNew(PIDControl, (void *)LED1, NULL);
-  PulseCount_t = osThreadNew(PulseCount, (void *)1000, NULL);
-  Communication_t = osThreadNew(Communication, NULL, NULL);
-  ControlInit_t = osThreadNew(ControlInit, NULL, NULL);
+  PIDControl_id = osThreadNew(PIDControl, (void *)LED1, NULL);
+  PulseCount_id = osThreadNew(PulseCount, (void *)1000, NULL);
+  Communication_id = osThreadNew(Communication, NULL, NULL);
+  ControlInit_id = osThreadNew(ControlInit, NULL, NULL);
+  MutexVel_id = osMutexNew(NULL);
   
   quo = (SystemCoreClock * 60);
   div = (LOAD * PPR * EDGES);
