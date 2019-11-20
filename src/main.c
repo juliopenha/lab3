@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "system_tm4c1294.h" // CMSIS-Core
 #include "driverleds.h" // device drivers
@@ -14,6 +13,7 @@
 #include "system_TM4C1294.h" 
 #include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
+
 #include "driverlib/gpio.h"
 #include "driverlib/pwm.h"
 #include "driverlib/adc.h"
@@ -25,13 +25,13 @@
 
 #define MAX (10)
 #define MAX_POT (4095)
-#define MAX_RPM (8900)
+#define MAX_RPM (12000)
 #define TICKS_IN_PERIOD (20000)
 #define SW1       (GPIO_PIN_0)    //PJ0
 #define SW2       (GPIO_PIN_1)    //PJ1
 #define Kp (2)
-#define Ki (2)
-#define Kd (2)
+#define Ki (0)
+#define Kd (0)
 #define LOAD (120000)
 #define PPR (18)
 #define EDGES (4)
@@ -41,8 +41,8 @@ extern void UARTStdioIntHandler(void);
 uint32_t PotValue;
 uint32_t dc;
 uint8_t direction = 0;
-uint8_t velocity = 0;
-uint16_t setpoint = 0;
+uint32_t velocity = 0;
+uint32_t setpoint = 0;
 
 uint32_t qei_vel; 
 uint32_t qei_dir; 
@@ -51,7 +51,11 @@ uint32_t prev_error = 0;
 uint32_t P = 0;
 uint32_t I = 0;
 uint32_t D = 0;
-uint32_t PIDValue;
+int32_t PIDValue;
+
+long double div;
+long double quo;
+double ratio;
 
 osThreadId_t PIDControl_t, PulseCount_t, Communication_t, ControlInit_t;
 uint32_t i = 0;
@@ -213,8 +217,6 @@ void QEIInit(){
   
   QEIVelocityConfigure(QEI0_BASE, QEI_VELDIV_1, LOAD);
   
-                       
-                       
   // Enable the quadrature encoder.//
   QEIEnable(QEI0_BASE);
   
@@ -262,6 +264,7 @@ void GPIOJ_Handler(void){
   
 }
 
+/** Função RunMotor
 void RunMotor(){
   if(direction){
     // Girar motor no Sentido Horario
@@ -282,6 +285,7 @@ void RunMotor(){
   PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, dc);
   
 }
+**/
 
 void PIDControl(void *arg){
   uint8_t led = (uint32_t)arg;
@@ -312,7 +316,7 @@ void PIDControl(void *arg){
     if(PIDValue < 0) {
       PIDValue = 0;
     }
-    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, 20000);
+    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, 10000);
     osThreadFlagsSet(PulseCount_t, 0x010);
   } // while
 } // PIDControl
@@ -324,12 +328,11 @@ void PulseCount(void *arg){
   while(1){
     osThreadFlagsWait(0x0010, osFlagsWaitAny, osWaitForever);
     tick = osKernelGetTickCount();
-    osDelay(500);
     QEIPositionGet(QEI0_BASE);
     qei_vel = QEIVelocityGet(QEI0_BASE);
     qei_dir = QEIDirectionGet(QEI0_BASE);
     
-    velocity = (SystemCoreClock * qei_vel * 60) / (LOAD * PPR * EDGES);
+    velocity = qei_vel * ratio;
     
     osThreadFlagsSet(Communication_t, 0x100);
     UARTprintf("<Temporiza> enviado\n");
@@ -346,6 +349,7 @@ void Communication(void *arg){
     osThreadFlagsWait(0x100, osFlagsWaitAny, osWaitForever);
     PotRead();
     setpoint = PotValue*MAX_RPM/MAX_POT;
+    for(i = 0; i< 100000; i++);
     UARTprintf("Setpoint: %i Velocity: %i Direction: %i\n", setpoint, velocity, direction);
     
     osThreadFlagsSet(PIDControl_t, 0x001);
@@ -377,6 +381,10 @@ void main(void){
   PulseCount_t = osThreadNew(PulseCount, (void *)1000, NULL);
   Communication_t = osThreadNew(Communication, NULL, NULL);
   ControlInit_t = osThreadNew(ControlInit, NULL, NULL);
+  
+  quo = (SystemCoreClock * 60);
+  div = (LOAD * PPR * EDGES);
+  ratio = quo / div;
   
   if(osKernelGetState() == osKernelReady) {
     osKernelStart();
