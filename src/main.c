@@ -25,33 +25,36 @@
 
 #define MAX (10)
 #define MAX_POT (4095)
-#define MAX_RPM (12000)
+#define MAX_RPM (8900)
 #define TICKS_IN_PERIOD (20000)
 #define SW1       (GPIO_PIN_0)    //PJ0
 #define SW2       (GPIO_PIN_1)    //PJ1
-#define Kp (2)
-#define Ki (0)
-#define Kd (0)
+
 #define LOAD (120000)
 #define PPR (18)
 #define EDGES (4)
 
+
 extern void UARTStdioIntHandler(void);
 
 uint32_t PotValue;
-uint32_t dc;
 uint8_t direction = 0;
 uint32_t velocity = 0;
 uint32_t setpoint = 0;
 
 uint32_t qei_vel; 
 uint32_t qei_dir; 
-uint32_t error = 0;
-uint32_t prev_error = 0;
-uint32_t P = 0;
-uint32_t I = 0;
-uint32_t D = 0;
+int32_t error = 0;
+int32_t prev_error = 0;
+int32_t P = 0;
+int32_t I = 0;
+int32_t D = 0;
 int32_t PIDValue;
+
+float Kp = 1.0;
+float Ki = 0.4;
+float Kd = 0.2;
+
 
 long double div;
 long double quo;
@@ -304,21 +307,29 @@ void PIDControl(void *arg){
       // Girar motor no Sentido Anti-Horario
       GPIOPinWrite(GPIO_PORTE_BASE,(GPIO_PIN_1 | GPIO_PIN_0),(GPIO_PIN_1));    
     }
-    error = velocity - setpoint;
-    P = error;
-    I = I + error;
-    D = error - prev_error;
-    PIDValue = (Kp * P) + (Ki * I) + (Kd * D);
+    
+   error = setpoint - velocity;
+
+   P = error;
+   I = I + error;
+   D = error - prev_error;
+
+   PIDValue = (int) (Kp * P) + (Ki * I) + (Kd * D);
+
     
     prev_error = error;
     
     if(PIDValue > TICKS_IN_PERIOD) {
       PIDValue = TICKS_IN_PERIOD;
     }
-    if(PIDValue < 0) {
+    else if(PIDValue < 0) {
       PIDValue = 0;
     }
-    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, 10000);
+    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, PIDValue);
+    //PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, TICKS_IN_PERIOD);
+    //osDelay(100);
+
+    
     osThreadFlagsSet(PulseCount_id, 0x010);
   } // while
 } // PIDControl
@@ -330,7 +341,7 @@ void PulseCount(void *arg){
   while(1){
     osThreadFlagsWait(0x0010, osFlagsWaitAny, osWaitForever);
     tick = osKernelGetTickCount();
-    QEIPositionGet(QEI0_BASE);
+    //QEIPositionGet(QEI0_BASE);
     qei_vel = QEIVelocityGet(QEI0_BASE);
     qei_dir = QEIDirectionGet(QEI0_BASE);
     
@@ -354,7 +365,7 @@ void Communication(void *arg){
     setpoint = PotValue*MAX_RPM/MAX_POT;
     for(i = 0; i< 100000; i++);
     
-    UARTprintf("Setpoint: %i Velocity: %i Direction: %i\n", setpoint, velocity, direction);
+    UARTprintf("Setpoint: %i Velocity: %i Direction: %i PIDValue: %i error: %i\n", setpoint, velocity, direction, PIDValue, error);
     
     osThreadFlagsSet(PIDControl_id, 0x001);
   } // while
@@ -382,7 +393,7 @@ void main(void){
   osKernelInitialize();
  
   PIDControl_id = osThreadNew(PIDControl, (void *)LED1, NULL);
-  PulseCount_id = osThreadNew(PulseCount, (void *)1000, NULL);
+  PulseCount_id = osThreadNew(PulseCount, (void *)200, NULL);
   Communication_id = osThreadNew(Communication, NULL, NULL);
   ControlInit_id = osThreadNew(ControlInit, NULL, NULL);
   MutexVel_id = osMutexNew(NULL);
