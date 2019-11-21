@@ -1,0 +1,21 @@
+uartstdio.pbi: \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\TivaWare_C_Series-2.1.4.178\utils\uartstdio.c \
+  C:\Program\ Files\ (x86)\IAR\ Systems\Embedded\ Workbench\ 8.3\arm\inc\c\stdbool.h \
+  C:\Program\ Files\ (x86)\IAR\ Systems\Embedded\ Workbench\ 8.3\arm\inc\c\stdint.h \
+  C:\Program\ Files\ (x86)\IAR\ Systems\Embedded\ Workbench\ 8.3\arm\inc\c\ycheck.h \
+  C:\Program\ Files\ (x86)\IAR\ Systems\Embedded\ Workbench\ 8.3\arm\inc\c\yvals.h \
+  C:\Program\ Files\ (x86)\IAR\ Systems\Embedded\ Workbench\ 8.3\arm\inc\c\DLib_Defaults.h \
+  C:\\Program\ Files\ (x86)\\IAR\ Systems\\Embedded\ Workbench\ 8.3\\arm\\inc\\c\\DLib_Config_Normal.h \
+  C:\Program\ Files\ (x86)\IAR\ Systems\Embedded\ Workbench\ 8.3\arm\inc\c\DLib_Product.h \
+  C:\Program\ Files\ (x86)\IAR\ Systems\Embedded\ Workbench\ 8.3\arm\inc\c\stdarg.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\inc/hw_ints.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\inc/hw_memmap.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\inc/hw_types.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\inc/hw_uart.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\driverlib/debug.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\driverlib/interrupt.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\driverlib/rom.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\driverlib/rom_map.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\driverlib/sysctl.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\driverlib/uart.h \
+  D:\UTFPR\2019-2\Sistemas\ Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\..\..\TivaWare_C_Series-2.1.4.178\utils/uartstdio.h
