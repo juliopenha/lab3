@@ -725,7 +725,7 @@
                     <item>ratio</item>
                     <item>SystemCoreClock</item>
                     <item>velocity</item>
-                    <item></item>
+                    <item />
                 </expressions>
                 <col-names>
                     <item>Expression</item>

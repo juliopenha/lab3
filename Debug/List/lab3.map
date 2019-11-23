@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# IAR ELF Linker V8.40.1.212/W32 for ARM                  21/Nov/2019  19:22:58
+# IAR ELF Linker V8.40.1.212/W32 for ARM                  22/Nov/2019  23:29:01
 # Copyright 2007-2019 IAR Systems AB.
 #
 #    Output file  =
@@ -10,7 +10,7 @@
 #        D:\UTFPR\2019-2\Sistemas
 #        Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\Debug\List\lab3.map
 #    Command line =
-#        -f C:\Users\JULIOC~1\AppData\Local\Temp\EWD5B7.tmp
+#        -f C:\Users\JULIOC~1\AppData\Local\Temp\EW142C.tmp
 #        ("D:\UTFPR\2019-2\Sistemas
 #        Embarcados\EK-TM4C1294_RTOS_IAR8\Projects\lab3\Debug\Obj\driverleds.o"
 #        "D:\UTFPR\2019-2\Sistemas
@@ -75,7 +75,7 @@ initialize by copy { rw };
   .intvec               ro code          0x0   0x3c0  startup_TM4C1294.o [1]
                                      - 0x3c0   0x3c0
 
-"P1":                                         0x3df9
+"P1":                                         0x3df8
   .text                 ro code        0x3c0   0x9f0  rtx_thread.o [2]
   .text                 ro code        0xdb0     0x2  rtx_evr.o [2]
   .text                 ro code        0xdb2     0x2  rtx_evr.o [2]
@@ -216,8 +216,8 @@ initialize by copy { rw };
   .rodata               const         0x419c     0x4  uartstdio.o [1]
   .rodata               const         0x41a0     0x0  zero_init3.o [6]
   .rodata               const         0x41a0     0x0  packbits_init_single.o [6]
-  Initializer bytes     const         0x41a0    0x19  <for P2-1>
-                                    - 0x41b9  0x3df9
+  Initializer bytes     const         0x41a0    0x18  <for P2-1>
+                                    - 0x41b8  0x3df8
 
 "P2", part 1 of 3:                              0xb0
   P2-1                           0x2000'0000    0xb0  <Init block>
@@ -280,7 +280,7 @@ Unused ranges:
 
          From           To      Size
          ----           --      ----
-       0x41b9     0xf'ffff  0xf'be47
+       0x41b8     0xf'ffff  0xf'be48
   0x2000'98f8  0x2003'ffff  0x3'6708
 
 
@@ -295,8 +295,8 @@ Zero (__iar_zero_init3)
           0x2000'00b0  0x1844
 
 Copy/packbits (__iar_packbits_init_single3)
-    1 source range, total size 0x19 (14% of destination):
-               0x41a0    0x19
+    1 source range, total size 0x18 (13% of destination):
+               0x41a0    0x18
     1 destination range, total size 0xb0:
           0x2000'0000    0xb0
 
@@ -328,7 +328,7 @@ RTX_CM.a: [2]
     os_systick.o                126                 1
     rtx_delay.o                 124
     rtx_evr.o                   126
-    rtx_kernel.o                712       24      164
+    rtx_kernel.o                712       23      164
     rtx_memory.o                272
     rtx_mempool.o               230
     rtx_msgqueue.o            1'564
@@ -337,7 +337,7 @@ RTX_CM.a: [2]
     rtx_thread.o              2'544
     rtx_timer.o                 212
     -------------------------------------------------
-    Total:                    7'322       24      165
+    Total:                    7'322       23      165
 
 dl7M_tln.a: [3]
     exit.o                        4
@@ -393,7 +393,7 @@ shb_l.a: [7]
     Gaps                         28        2
     Linker created                        32   32'768
 -----------------------------------------------------
-    Grand Total:             15'614    1'211   39'160
+    Grand Total:             15'614    1'210   39'160
 
 
 *******************************************************************************
@@ -418,9 +418,9 @@ CPUcpsie                     0x39c1     0x8  Code  Gb  cpu.o [4]
 CSTACK$$Base            0x2000'18f8           --   Gb  - Linker created -
 CSTACK$$Limit           0x2000'98f8           --   Gb  - Linker created -
 Communication                0x200d    0x6e  Code  Gb  main.o [1]
-Communication_id        0x2000'18c8     0x4  Data  Gb  main.o [1]
+Communication_id        0x2000'18cc     0x4  Data  Gb  main.o [1]
 ControlInit                  0x207b    0x10  Code  Gb  main.o [1]
-ControlInit_id          0x2000'18cc     0x4  Data  Gb  main.o [1]
+ControlInit_id          0x2000'18d0     0x4  Data  Gb  main.o [1]
 D                       0x2000'18b8     0x4  Data  Gb  main.o [1]
 EvrRtxDelayCompleted          0xdb1     0x2  Code  Wk  rtx_evr.o [2]
 EvrRtxDelayError             0x3a93     0x2  Code  Wk  rtx_evr.o [2]
@@ -541,14 +541,14 @@ LEDWrite                     0x307b    0x64  Code  Gb  driverleds.o [1]
 MessageQueueGet              0x1565    0x40  Code  Lc  rtx_msgqueue.o [2]
 MessageQueuePut              0x1519    0x4a  Code  Lc  rtx_msgqueue.o [2]
 MessageQueueRemove           0x15a5    0x1a  Code  Lc  rtx_msgqueue.o [2]
-MutexVel_id             0x2000'18d0     0x4  Data  Gb  main.o [1]
+MutexVel_id             0x2000'18d4     0x4  Data  Gb  main.o [1]
 OS_Tick_AcknowledgeIRQ       0x150d     0xc  Code  Wk  os_systick.o [2]
 OS_Tick_Enable               0x3a5d    0x2c  Code  Wk  os_systick.o [2]
 OS_Tick_GetIRQn              0x3a55     0x6  Code  Wk  os_systick.o [2]
 OS_Tick_Setup                0x3a15    0x40  Code  Wk  os_systick.o [2]
 P                       0x2000'18b0     0x4  Data  Gb  main.o [1]
 PIDControl                   0x1e99   0x108  Code  Gb  main.o [1]
-PIDControl_id           0x2000'18c0     0x4  Data  Gb  main.o [1]
+PIDControl_id           0x2000'18c4     0x4  Data  Gb  main.o [1]
 PIDValue                0x2000'18bc     0x4  Data  Gb  main.o [1]
 PWMGenConfigure              0x2d35    0x2e  Code  Gb  pwm.o [4]
 PWMGenEnable                 0x2d77     0xc  Code  Gb  pwm.o [4]
@@ -561,7 +561,7 @@ PendSV_Handler               0x3dbd          Code  Gb  irq_cm4f.o [2]
 PotRead                      0x1e51    0x26  Code  Gb  main.o [1]
 PotValue                0x2000'187c     0x4  Data  Gb  main.o [1]
 PulseCount                   0x1fa1    0x6c  Code  Gb  main.o [1]
-PulseCount_id           0x2000'18c4     0x4  Data  Gb  main.o [1]
+PulseCount_id           0x2000'18c8     0x4  Data  Gb  main.o [1]
 QEIConfigure                 0x2f2b    0x10  Code  Gb  qei.o [4]
 QEIDirectionGet              0x2f41    0x12  Code  Gb  qei.o [4]
 QEIEnable                    0x2f21     0xa  Code  Gb  qei.o [4]
@@ -665,7 +665,7 @@ g_ui32UARTRxReadIndex   0x2000'18e4     0x4  Data  Lc  uartstdio.o [1]
 g_ui32UARTRxWriteIndex  0x2000'18e0     0x4  Data  Lc  uartstdio.o [1]
 g_ui32UARTTxReadIndex   0x2000'18dc     0x4  Data  Lc  uartstdio.o [1]
 g_ui32UARTTxWriteIndex  0x2000'18d8     0x4  Data  Lc  uartstdio.o [1]
-i                       0x2000'18d4     0x4  Data  Gb  main.o [1]
+i                       0x2000'18c0     0x4  Data  Gb  main.o [1]
 main                         0x208b    0xae  Code  Gb  main.o [1]
 osDelayUntil                 0x35dd    0x38  Code  Gb  rtx_delay.o [2]
 osKernelGetState             0x32ed    0x40  Code  Gb  rtx_kernel.o [2]
@@ -764,7 +764,7 @@ velocity                0x2000'1898     0x4  Data  Gb  main.o [1]
 [7] = shb_l.a
 
   15'614 bytes of readonly  code memory
-   1'211 bytes of readonly  data memory
+   1'210 bytes of readonly  data memory
   39'160 bytes of readwrite data memory
 
 Errors: none
