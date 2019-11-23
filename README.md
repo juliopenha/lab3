@@ -15,6 +15,6 @@ Fonte Externa (12V): P5_Ext e P5_GND.
 Motor: P5_1Y E P5_2Y.
 Potenciômetro (10kohms): Pot2.
 
+### Diagrama esquemático do bloco de hardware:
 
-
-TODO: add hardware diagram
+![hardware diagram](https://user-images.githubusercontent.com/24701106/69471401-608abe80-0d7d-11ea-8070-8ada115b35d8.png)
